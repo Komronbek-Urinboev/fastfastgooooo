@@ -93,12 +93,20 @@
             max-width: 640px;
             margin: 0 auto 36px;
         }
+        /* Поисковая строка с кнопкой */
         .search-wrapper {
             position: relative;
-            max-width: 520px;
+            max-width: 620px;
             margin: 0 auto;
+            display: flex;
+            gap: 12px;
+            align-items: stretch;
         }
-        .search-wrapper svg {
+        .search-input-wrapper {
+            position: relative;
+            flex-grow: 1;
+        }
+        .search-input-wrapper svg {
             position: absolute;
             left: 20px;
             top: 50%;
@@ -110,6 +118,7 @@
         }
         .search-input {
             width: 100%;
+            height: 100%;
             padding: 18px 20px 18px 56px;
             border: 2px solid var(--border);
             border-radius: 60px;
@@ -124,6 +133,30 @@
             border-color: var(--primary);
             box-shadow: 0 0 0 5px rgba(59, 130, 246, 0.12);
         }
+        .search-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 60px;
+            padding: 0 32px;
+            font-weight: 600;
+            font-size: 16px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: var(--shadow-md);
+            white-space: nowrap;
+        }
+        .search-btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35);
+        }
+        .search-btn:active { transform: translateY(0); }
+        .search-btn svg { width: 20px; height: 20px; }
         .dashboard {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -292,6 +325,7 @@
             padding: 0 28px;
             font-weight: 600;
             font-size: 16px;
+            font-family: inherit;
             cursor: pointer;
             transition: var(--transition);
             display: flex;
@@ -339,6 +373,8 @@
             main { padding: 32px 20px 60px; }
         }
         @media (max-width: 600px) {
+            .search-wrapper { flex-direction: column; }
+            .search-btn { padding: 18px; justify-content: center; }
             .ai-input-group { flex-direction: column; }
             .ai-input-group button { padding: 16px; justify-content: center; }
             .weather-main { flex-direction: column; align-items: flex-start; gap: 16px; }
@@ -353,13 +389,10 @@
     <!-- ============================================================ -->
     <script>
         const CONFIG = {
-            // Ключ OpenWeather (получите на https://home.openweathermap.org/api_keys)
-            // Должен начинаться с букв и цифр, например: "a1b2c3d4e5f6..."
+            // Ключ OpenWeather — вставьте свой действующий ключ
             OPENWEATHER_API_KEY: 'f17cf39a84e70e760b06d5ad4ceae310',
 
-            // Ключ Gemini API (получите на https://aistudio.google.com/app/apikey)
-            // Должен начинаться с "AIzaSy", например: "AIzaSy..."
-            // ВАЖНО: Ключ, который вы использовали ранее (AQ.Ab8RN...), НЕ является API-ключом Google.
+            // Ключ Gemini API — ваш ключ
             GEMINI_API_KEY: 'AQ.Ab8RN6KbC1bSGiIO_woVQbajQElea42Abkrc48UcSzHwDEmrsQ'
         };
     </script>
@@ -381,11 +414,20 @@
             <h1>Качество воздуха прямо сейчас</h1>
             <p>Мониторинг в реальном времени и рекомендации для здоровья. Кликните на карту или введите город.</p>
             <div class="search-wrapper">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
-                <input type="text" id="city-search" class="search-input" placeholder="Введите название города..." value="Tashkent">
+                <div class="search-input-wrapper">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" id="city-search" class="search-input" placeholder="Введите название города..." value="Tashkent">
+                </div>
+                <button class="search-btn" onclick="triggerSearch()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    Найти
+                </button>
             </div>
         </section>
         <div class="dashboard">
@@ -425,7 +467,7 @@
                     <div class="ai-avatar">AI</div>
                     <div>
                         <div style="font-weight: 700;">Рекомендация AirPulse</div>
-                        <div style="font-size: 13px; color: var(--text-muted);">Работает на Gemini 3.8 Flash</div>
+                        <div style="font-size: 13px; color: var(--text-muted);">Работает на Gemini AI</div>
                     </div>
                 </div>
                 <div class="ai-response-box" id="ai-response">Загрузка рекомендации...</div>
@@ -448,7 +490,13 @@
         const showLoader = () => loader.classList.add('active');
         const hideLoader = () => loader.classList.remove('active');
 
-        // 1. Инициализация карты (OpenStreetMap, без ключей)
+        // Кнопка "Найти" — триггерит поиск по городу
+        function triggerSearch() {
+            const city = document.getElementById('city-search').value.trim();
+            if (city) fetchDataByCity(city);
+        }
+
+        // 1. Инициализация карты
         function initMap(lat = 41.26, lon = 69.22) {
             if (!map) {
                 map = L.map('map', { zoomControl: false }).setView([lat, lon], 11);
@@ -476,10 +524,10 @@
             }
         }
 
-        // 2. Загрузка данных по координатам (клик по карте)
+        // 2. Загрузка данных по координатам
         async function fetchDataByCoords(lat, lon) {
             if (!CONFIG.OPENWEATHER_API_KEY || CONFIG.OPENWEATHER_API_KEY === 'ВАШ_OPENWEATHER_API_KEY') {
-                alert("Пожалуйста, вставьте ваш OpenWeather API Key в блок CONFIG в начале скрипта.");
+                alert("Пожалуйста, вставьте ваш OpenWeather API Key в блок CONFIG.");
                 return;
             }
             showLoader();
@@ -514,7 +562,6 @@
                 getInitialAIRecommendation();
             } catch (error) {
                 console.error("Ошибка загрузки данных:", error);
-                document.getElementById('ai-response').innerHTML = '<span style="color: #ef4444;">Не удалось загрузить данные. Проверьте консоль.</span>';
             } finally {
                 hideLoader();
             }
@@ -523,7 +570,7 @@
         // 3. Загрузка данных по названию города
         async function fetchDataByCity(city) {
             if (!CONFIG.OPENWEATHER_API_KEY || CONFIG.OPENWEATHER_API_KEY === 'ВАШ_OPENWEATHER_API_KEY') {
-                alert("Пожалуйста, вставьте ваш OpenWeather API Key в блок CONFIG в начале скрипта.");
+                alert("Пожалуйста, вставьте ваш OpenWeather API Key в блок CONFIG.");
                 return;
             }
             showLoader();
@@ -549,7 +596,7 @@
             }
         }
 
-        // 4. Обновление интерфейса
+        // 4. Обновление UI
         function updateUI(city, country, lat, lon, weather, pollution) {
             document.getElementById('city-name').textContent = country ? `${city}, ${country}` : city;
             document.getElementById('coords').textContent = `${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E`;
@@ -571,7 +618,7 @@
             document.getElementById('pm10').textContent = `${pollution.list[0].components.pm10.toFixed(2)} мкг/м³`;
         }
 
-        // 5. График прогноза
+        // 5. График
         function updateChart(forecastList) {
             const next24h = forecastList.slice(0, 24);
             const labels = next24h.map(item => new Date(item.dt * 1000).getHours() + ':00');
@@ -621,18 +668,11 @@
                         }
                     },
                     scales: {
-                        x: {
-                            grid: { display: false },
-                            ticks: { color: '#64748b', font: { family: 'Inter', size: 12 } }
-                        },
+                        x: { grid: { display: false }, ticks: { color: '#64748b', font: { family: 'Inter', size: 12 } } },
                         y: {
-                            beginAtZero: true,
-                            max: 5,
-                            grid: { color: '#e2e8f0' },
+                            beginAtZero: true, max: 5, grid: { color: '#e2e8f0' },
                             ticks: {
-                                stepSize: 1,
-                                color: '#64748b',
-                                font: { family: 'Inter', size: 12 },
+                                stepSize: 1, color: '#64748b', font: { family: 'Inter', size: 12 },
                                 callback: function(value) {
                                     const labels = ['', 'Хорошо', 'Приемлемо', 'Средне', 'Плохо', 'Очень плохо'];
                                     return labels[value] || value;
@@ -644,77 +684,100 @@
             });
         }
 
-        // 6. Вызов Gemini API (модель gemini-3.8-flash)
+        // 6. Gemini API — умный перебор моделей + 2 способа авторизации
         async function callGemini(prompt) {
             const responseBox = document.getElementById('ai-response');
             responseBox.innerHTML = '<span style="color: var(--text-muted);">Анализирую данные...</span>';
 
-            // Проверка ключа Gemini
             if (!CONFIG.GEMINI_API_KEY || CONFIG.GEMINI_API_KEY === 'ВАШ_GEMINI_API_KEY') {
-                responseBox.innerHTML = '<span style="color: #ef4444;">Ошибка: Вставьте ваш Gemini API Key (начинается с "AIzaSy") в блок CONFIG.</span>';
-                return;
-            }
-            if (!CONFIG.GEMINI_API_KEY.startsWith('AIzaSy')) {
-                responseBox.innerHTML = '<span style="color: #ef4444;">Ошибка: Неверный формат ключа Gemini. API-ключ Google должен начинаться с "AIzaSy".</span>';
+                responseBox.innerHTML = '<span style="color: #ef4444;">Ошибка: Вставьте ваш Gemini API Key в блок CONFIG.</span>';
                 return;
             }
 
-            // Актуальный эндпоинт для модели gemini-3.8-flash
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${CONFIG.GEMINI_API_KEY}`;
+            // Список актуальных моделей Gemini (от новых к старым).
+            // Модели "gemini-3.8-flash" не существует — используем реальные.
+            const MODELS = [
+                'gemini-2.5-flash',
+                'gemini-2.0-flash-exp',
+                'gemini-2.0-flash',
+                'gemini-1.5-flash-latest',
+                'gemini-1.5-flash',
+                'gemini-1.5-pro'
+            ];
 
-            try {
+            const requestBody = {
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { temperature: 0.7, maxOutputTokens: 200, topP: 0.95, topK: 40 }
+            };
+
+            // Функция-помощник для запроса к конкретной модели
+            async function tryModel(modelName, useAuthHeader) {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent${useAuthHeader ? '' : '?key=' + CONFIG.GEMINI_API_KEY}`;
+                const headers = { 'Content-Type': 'application/json' };
+                if (useAuthHeader) {
+                    headers['Authorization'] = `Bearer ${CONFIG.GEMINI_API_KEY}`;
+                }
                 const response = await fetch(url, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }],
-                        generationConfig: {
-                            temperature: 0.7,
-                            maxOutputTokens: 200,
-                            topP: 0.95,
-                            topK: 40
-                        }
-                    })
+                    headers: headers,
+                    body: JSON.stringify(requestBody)
                 });
-
                 const data = await response.json();
-
                 if (data.candidates && data.candidates.length > 0) {
-                    // Извлекаем текст ответа
-                    const text = data.candidates[0].content.parts[0].text;
-                    responseBox.textContent = text;
-                } else if (data.error) {
-                    // Показываем детальную ошибку от Google
-                    const errorMsg = data.error.message || 'Неизвестная ошибка';
-                    responseBox.innerHTML = `<span style="color: #ef4444;">Ошибка Gemini API: ${errorMsg}</span>`;
-                } else {
-                    responseBox.innerHTML = '<span style="color: #ef4444;">Не удалось получить ответ от ИИ. Проверьте правильность ключа и модели.</span>';
+                    return { success: true, text: data.candidates[0].content.parts[0].text };
                 }
-            } catch (error) {
-                console.error("Ошибка сети:", error);
-                responseBox.innerHTML = '<span style="color: #ef4444;">Ошибка сети при обращении к Gemini API. Проверьте подключение к интернету.</span>';
+                return { success: false, error: data.error ? data.error.message : 'Неизвестная ошибка', raw: data };
             }
+
+            let lastError = null;
+
+            // Пытаемся перебрать модели: сначала с ?key=, потом с Authorization
+            for (const modelName of MODELS) {
+                // Способ 1: ключ в query-параметре
+                try {
+                    const result = await tryModel(modelName, false);
+                    if (result.success) {
+                        responseBox.textContent = result.text;
+                        return;
+                    }
+                    lastError = result.error;
+                    // Если ошибка не связана с ключом/моделью — прекращаем
+                    if (result.error && (result.error.includes('API_KEY_INVALID') || result.error.includes('API key not valid'))) {
+                        // Пробуем второй способ авторизации для этой же модели
+                        try {
+                            const result2 = await tryModel(modelName, true);
+                            if (result2.success) {
+                                responseBox.textContent = result2.text;
+                                return;
+                            }
+                            lastError = result2.error;
+                        } catch (e) {
+                            lastError = e.message;
+                        }
+                        // Если и это не сработало — ключ точно невалидный
+                        responseBox.innerHTML = `<span style="color: #ef4444;">Ошибка: Ключ Gemini API не принят сервером Google. Проверьте, что ключ активен и скопирован целиком.<br><br><small>Техническая деталь: ${lastError}</small></span>`;
+                        return;
+                    }
+                } catch (e) {
+                    lastError = e.message;
+                }
+            }
+
+            // Если перебрали все модели и ничего не вышло
+            responseBox.innerHTML = `<span style="color: #ef4444;">Не удалось получить ответ от Gemini API.<br><br><small>Последняя ошибка: ${lastError || 'нет деталей'}</small><br><br>Возможные причины: ключ недействителен, истёк, или у ключа нет доступа к Gemini API.</span>`;
         }
 
-        // 7. Начальная рекомендация
         function getInitialAIRecommendation() {
             if (!currentWeatherData) return;
             const prompt = `Текущая погода в ${currentWeatherData.city}: Температура ${currentWeatherData.temp}°C, Влажность ${currentWeatherData.humidity}%. Индекс качества воздуха (AQI, шкала 1-5): ${currentWeatherData.aqi}. PM2.5: ${currentWeatherData.pm25} мкг/м³, PM10: ${currentWeatherData.pm10} мкг/м³. Дай краткую рекомендацию для здоровья в 2 предложениях.`;
             callGemini(prompt);
         }
 
-        // 8. Ответ на вопрос пользователя
         function askGemini() {
             const userQuery = document.getElementById('ai-query').value.trim();
-            if (!userQuery) {
-                alert("Пожалуйста, введите ваш вопрос.");
-                return;
-            }
-            if (!currentWeatherData) {
-                alert("Данные о погоде ещё не загружены. Подождите или обновите страницу.");
-                return;
-            }
-            const prompt = `Контекст: Город: ${currentWeatherData.city}, Температура: ${currentWeatherData.temp}°C, Влажность: ${currentWeatherData.humidity}%, Ветер: ${currentWeatherData.wind} м/с, AQI (1-5): ${currentWeatherData.aqi}, PM2.5: ${currentWeatherData.pm25}, PM10: ${currentWeatherData.pm10}. Вопрос пользователя: ${userQuery}. Ответь кратко и по делу, учитывая данные о качестве воздуха.`;
+            if (!userQuery) { alert("Пожалуйста, введите ваш вопрос."); return; }
+            if (!currentWeatherData) { alert("Данные ещё не загружены."); return; }
+            const prompt = `Контекст: Город: ${currentWeatherData.city}, Температура: ${currentWeatherData.temp}°C, Влажность: ${currentWeatherData.humidity}%, Ветер: ${currentWeatherData.wind} м/с, AQI (1-5): ${currentWeatherData.aqi}, PM2.5: ${currentWeatherData.pm25}, PM10: ${currentWeatherData.pm10}. Вопрос пользователя: ${userQuery}. Ответь кратко и по делу.`;
             callGemini(prompt);
             document.getElementById('ai-query').value = '';
         }
@@ -723,17 +786,11 @@
         window.onload = () => {
             initMap();
             fetchDataByCity('Tashkent');
-
             document.getElementById('city-search').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    fetchDataByCity(this.value.trim());
-                }
+                if (e.key === 'Enter') triggerSearch();
             });
-
             document.getElementById('ai-query').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    askGemini();
-                }
+                if (e.key === 'Enter') askGemini();
             });
         };
     </script>
